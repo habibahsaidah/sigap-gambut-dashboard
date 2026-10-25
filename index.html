@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>SIGAP GAMBUT · Layer 2 Early Detection System — Desktop Command Center</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#050e0c; --panel:#0a1a16; --panel2:#0d221c; --line:#173a30; --line2:#224d40;
+    --safe:#22d3a6; --warn:#f5b83d; --danger:#ff5a4e; --crit:#d1004b; --sky:#38bdf8;
+    --ink:#e6fff7; --mute:#7fa79b; --dim:#4d7461;
+    --font:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;font-family:var(--font);color:var(--ink);min-height:100vh;
+    background:
+      radial-gradient(1400px 700px at 85% -15%, rgba(15,80,60,.35) 0%, transparent 55%),
+      radial-gradient(1000px 600px at -10% 120%, rgba(20,60,80,.28) 0%, transparent 55%),
+      var(--bg);
+    overflow-x:hidden;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.25 0 0 0 0 0.2 0 0 0 0.03 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  }
+  .glass{background:linear-gradient(165deg,rgba(16,36,30,.94),rgba(8,20,17,.94));border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.035);backdrop-filter:blur(10px);position:relative;z-index:1}
+  .card-hover{transition:transform .28s cubic-bezier(.2,.8,.2,1),border-color .28s,box-shadow .28s}
+  .card-hover:hover{transform:translateY(-3px);border-color:var(--line2);box-shadow:0 22px 50px rgba(0,0,0,.6),0 0 0 1px rgba(34,211,166,.12)}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.3px}
+  .pulse-dot{width:8px;height:8px;border-radius:50%;position:relative}
+  .pulse-dot::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:2px solid currentColor;opacity:.6;animation:ping 1.6s cubic-bezier(0,0,.2,1) infinite}
+  @keyframes ping{0%{transform:scale(.6);opacity:.8}100%{transform:scale(2.3);opacity:0}}
+  .hotspot{animation:blink 2.2s ease-in-out infinite;transform-origin:center}
+  @keyframes blink{0%,100%{opacity:.4;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+  .marquee{overflow:hidden;white-space:nowrap}
+  .marquee>div{display:inline-block;padding-left:100%;animation:mq 34s linear infinite}
+  @keyframes mq{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+  .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+  .gauge-ring{transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1),stroke .8s}
+  .alert-flash{animation:flash 1.6s ease-in-out infinite}
+  @keyframes flash{0%,100%{box-shadow:0 0 0 0 rgba(255,90,78,.5)}50%{box-shadow:0 0 0 14px rgba(255,90,78,0)}}
+  .slide-up{animation:su .5s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes su{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .tabbtn{transition:all .22s;border:1px solid transparent;cursor:pointer}
+  .tabbtn.active{background:rgba(34,211,166,.14);border-color:rgba(34,211,166,.42);color:#8ff5dc}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:#1e3b33;border-radius:8px}
+  ::-webkit-scrollbar-thumb:hover{background:#2a5446}
+  ::-webkit-scrollbar-track{background:transparent}
+  .log-line{animation:su .35s both}
+  .img-card{position:relative;overflow:hidden;border-radius:14px}
+  .img-card img{transition:transform .7s cubic-bezier(.2,.8,.2,1),filter .5s;filter:saturate(.9) brightness(.75)}
+  .img-card:hover img{transform:scale(1.07);filter:saturate(1.15) brightness(.85)}
+  .img-card .overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,10,8,0) 25%,rgba(3,10,8,.92) 100%)}
+  .heat-flow{animation:flow 2.2s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-40}}
+  .heat-vapor{animation:vapor 3s ease-in-out infinite}
+  @keyframes vapor{0%,100%{opacity:.2;transform:translateY(0)}50%{opacity:.85;transform:translateY(-5px)}}
+  .flame{animation:flame 1.4s ease-in-out infinite alternate;transform-origin:center bottom}
+  @keyframes flame{from{transform:scaleY(1) scaleX(1);opacity:.85}to{transform:scaleY(1.22) scaleX(1.06);opacity:1}}
+  .breathe{animation:breathe 4s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.55}50%{opacity:1}}
+  .heatpipe-stroke{transition:stroke-width .35s, stroke .35s}
+  .layer-col{transition:all .3s;cursor:pointer}
+  .layer-col:hover{transform:translateY(-4px);border-color:var(--line2)!important}
+  .layer-col.active{border-color:rgba(34,211,166,.55)!important;background:linear-gradient(160deg,rgba(34,211,166,.13),rgba(8,20,17,.98))!important}
+  .btn-primary{background:linear-gradient(135deg,#22d3a6,#0d8f6f);color:#04120e;transition:all .2s}
+  .btn-primary:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 8px 20px rgba(34,211,166,.3)}
+  .stat-hero{position:relative;overflow:hidden}
+  .stat-hero::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,currentColor 0%,transparent 55%);opacity:.09;pointer-events:none}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(2,7,6,.85);backdrop-filter:blur(8px);z-index:100;display:none;align-items:center;justify-content:center;padding:40px}
+  .modal-backdrop.open{display:flex}
+  .modal-panel{max-width:1100px;width:100%;max-height:88vh;overflow-y:auto;animation:su .3s both}
+  .slider{-webkit-appearance:none;appearance:none;height:6px;border-radius:999px;outline:none;transition:all .2s}
+  .slider::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#22d3a6;cursor:pointer;box-shadow:0 0 0 4px rgba(34,211,166,.2),0 2px 8px rgba(0,0,0,.5);transition:transform .15s}
+  .slider::-webkit-slider-thumb:hover{transform:scale(1.15)}
+  .metric-badge{font-size:10px;padding:2px 7px;border-radius:6px;font-weight:700;letter-spacing:.5px}
+  .pane{display:none}.pane.active{display:block;animation:su .35s both}
+  .heatpipe-node{cursor:pointer;transition:all .2s}
+  .heatpipe-node:hover{filter:brightness(1.6) drop-shadow(0 0 10px currentColor)}
+  .heatpipe-node.active circle{border:2px solid #fff}
+  .cluster-cell{cursor:pointer;transition:all .18s}
+  .cluster-cell:hover{filter:brightness(1.8)}
+  .bar-track{background:#132821;height:8px;border-radius:999px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:999px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+
+  /* ═══ LEAFLET CUSTOM ═══ */
+  #leafletMain, #leafletMini{ background:#04100d; }
+  #leafletMain{height:560px;border-radius:12px}
+  #leafletMini{height:240px;border-radius:12px}
+
+  .leaflet-container{background:#04100d!important;font-family:var(--font)!important;}
+  .leaflet-tile-pane{filter:brightness(.72) saturate(.85) hue-rotate(-8deg) contrast(1.05)}
+  .leaflet-control-attribution{background:rgba(5,14,12,.85)!important;color:#7fa79b!important;font-size:9px!important;padding:2px 6px!important;border-radius:4px 0 0 0!important}
+  .leaflet-control-attribution a{color:#22d3a6!important}
+  .leaflet-bar{background:rgba(6,17,15,.92)!important;border:1px solid #173a30!important;border-radius:8px!important;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.5)!important}
+  .leaflet-bar a{background:transparent!important;color:#c8e8de!important;border-bottom-color:#173a30!important;font-weight:700!important}
+  .leaflet-bar a:hover{background:rgba(34,211,166,.12)!important;color:#22d3a6!important}
+  .leaflet-popup-content-wrapper{background:#0a1a16!important;border:1px solid #22d3a6!important;color:#e6fff7!important;border-radius:10px!important;box-shadow:0 12px 28px rgba(0,0,0,.7)!important;padding:0!important}
+  .leaflet-popup-content{margin:0!important;padding:12px 14px!important;font-size:11px!important;line-height:1.5}
+  .leaflet-popup-tip{background:#0a1a16!important;border:1px solid #22d3a6!important;border-top:none!important;border-right:none!important}
+  .leaflet-popup-close-button{color:#ff8a80!important;font-size:18px!important;padding:6px 8px 0 0!important}
+
+  .zone-circle-pulse{animation:zonePulse 3s ease-in-out infinite}
+  @keyframes zonePulse{0%,100%{stroke-opacity:.9;fill-opacity:.15}50%{stroke-opacity:.5;fill-opacity:.28}}
+
+  .zone-label{
+    background:transparent;border:none;box-shadow:none!important;
+    font-family:var(--font);font-weight:800;font-size:11px;
+    color:#fff;text-shadow:0 0 4px rgba(0,0,0,1),0 0 8px rgba(0,0,0,.9);
+    padding:0;white-space:nowrap;
+  }
+  .zone-label::before{display:none}
+  .node-pulse{animation:nodePulse 2.4s ease-in-out infinite}
+  @keyframes nodePulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.6}}
+
+  .map-info-box{
+    background:rgba(6,17,15,.94);border:1px solid #173a30;border-radius:10px;
+    padding:10px 12px;color:#e6fff7;font-size:11px;line-height:1.6;
+    box-shadow:0 8px 22px rgba(0,0,0,.6);backdrop-filter:blur(8px);
+    border-left:3px solid #22d3a6;
+  }
+
+  .map-loading{position:absolute;top:0;left:0;right:0;bottom:0;background:#04100d;display:flex;align-items:center;justify-content:center;z-index:500;border-radius:12px;transition:opacity .5s}
+  .map-loading.hide{opacity:0;pointer-events:none}
+  .spinner{width:36px;height:36px;border:3px solid #173a30;border-top-color:#22d3a6;border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Map mode switcher */
+  .map-mode-btn{padding:5px 10px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;transition:all .2s;border:1px solid transparent;background:rgba(6,17,15,.85);color:#7fa79b}
+  .map-mode-btn.active{background:rgba(34,211,166,.15);color:#8ff5dc;border-color:rgba(34,211,166,.4)}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ TOP BAR ══════════════ -->
+<header class="sticky top-0 z-50 border-b border-[#173a30] bg-[#050e0c]/90 backdrop-blur-xl" style="z-index:1200">
+  <div class="max-w-[1700px] mx-auto px-6 py-3 flex items-center gap-5">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#22d3a6] to-[#0d8f6f] flex items-center justify-center font-black text-[#04120e] text-lg shadow-lg shadow-emerald-500/25">SG</div>
+      <div>
+        <h1 class="text-[16px] font-black tracking-tight leading-none">SIGAP GAMBUT <span class="text-[10px] font-semibold text-[#22d3a6] align-middle ml-1.5 px-1.5 py-0.5 rounded border border-[#22d3a6]/40">LAYER 2</span></h1>
+        <p class="text-[10px] text-[#7fa79b] mt-1">Early Detection System · Smoldering Risk Index · Kab. Banjar, Kalsel</p>
+      </div>
+    </div>
+
+    <nav class="flex items-center gap-1 ml-4">
+      <button class="tabbtn active px-3.5 py-2 rounded-lg text-[11px] font-semibold" data-pane="overview">Overview</button>
+      <button class="tabbtn px-3.5 py-2 rounded-lg text-[11px] font-semibold" data-pane="map">Peta Live</button>
+      <button class="tabbtn px-3.5 py-2 rounded-lg text-[11px] font-semibold" data-pane="heatpipe">Bio-Wick Heat Pipe</button>
+      <button class="tabbtn px-3.5 py-2 rounded-lg text-[11px] font-semibold" data-pane="layers">4 Lapis Sistem</button>
+      <button class="tabbtn px-3.5 py-2 rounded-lg text-[11px] font-semibold" data-pane="analytics">Analitik</button>
+      <button class="tabbtn px-3.5 py-2 rounded-lg text-[11px] font-semibold" data-pane="log">Log Live</button>
+    </nav>
+
+    <div class="ml-auto flex items-center gap-2 text-[11px]">
+      <div class="chip" style="background:rgba(34,211,166,.12);color:#5ff0cf"><span class="pulse-dot" style="background:#22d3a6;color:#22d3a6"></span>SISTEM ONLINE</div>
+      <div class="chip" style="background:rgba(127,167,155,.1);color:#7fa79b">18/18 node</div>
+      <div class="chip tnum" style="background:rgba(127,167,155,.1);color:#7fa79b" id="clock">--:--:-- WITA</div>
+      <button id="openAlerts" class="chip" style="background:rgba(255,90,78,.18);color:#ff8a80;border:1px solid rgba(255,90,78,.35);cursor:pointer">
+        <span class="pulse-dot" style="background:#ff5a4e;color:#ff5a4e"></span><span id="alertBadge">3</span> Alert
+      </button>
+    </div>
+  </div>
+  <div class="bg-[#d1004b]/12 border-t border-[#d1004b]/25 text-[11px] py-1.5 marquee" style="color:#ff8fae">
+    <div>
+      ⚠ <b>PERINGATAN KRITIS</b> — SRI Kec. Gambut (Zona A) mencapai <b>82</b>: suhu tanah 61.4°C, TMAT −58 cm. Potensi smoldering aktif dalam <b>&lt; 12 jam</b>. &nbsp;&nbsp;•&nbsp;&nbsp;
+      ⚠ WASPADA — Sungai Tabuk (Zona C) SRI 54: kelembapan tanah turun 6% dalam 6 jam. &nbsp;&nbsp;•&nbsp;&nbsp;
+      ✔ Kertak Hanyar (Zona B) SRI 47 — mendekati ambang aman. &nbsp;&nbsp;•&nbsp;&nbsp;
+      ● 3 dari 18 node sensor melaporkan anomali suhu beruntun &nbsp;&nbsp;•&nbsp;&nbsp;
+      🛰️ Citra satelit NOAA-20 terbaru: hotspot terdeteksi di radius 2.4 km dari Zona A
+    </div>
+  </div>
+</header>
+
+<main class="max-w-[1700px] mx-auto px-6 py-5">
+
+<!-- ═══════════════════════════════════════════
+     PANE: OVERVIEW
+════════════════════════════════════════════ -->
+<section class="pane active" id="pane-overview">
+
+  <!-- Hero: photo + headline stats -->
+  <div class="grid grid-cols-12 gap-4 mb-4">
+    <div class="col-span-8 glass overflow-hidden p-0 card-hover">
+      <div class="relative" style="height:280px">
+        <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1600&q=80" alt="Hutan Kalimantan" class="w-full h-full object-cover" style="filter:saturate(.85) brightness(.55)">
+        <div class="absolute inset-0" style="background:linear-gradient(120deg,rgba(3,10,8,.9) 0%,rgba(3,10,8,.5) 45%,rgba(3,10,8,.15) 100%)"></div>
+        <div class="absolute inset-0 p-6 flex flex-col justify-between">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[.25em]" style="color:#22d3a6">Pilot Project · Kabupaten Banjar</p>
+            <h2 class="text-2xl font-black mt-1 leading-tight max-w-md">Deteksi Dini Kebakaran Gambut<br>Sebelum Asap Muncul</h2>
+            <p class="text-[11px] mt-2 max-w-md" style="color:#b8e0d4">Sistem 4-lapis terintegrasi: PFVI mapping, sensor tanah live, Bio-Wick Heat pipe, dan respons komunitas. Fokus: mencegah <i>smoldering</i> bawah permukaan yang tak terlihat mata.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button class="chip btn-primary" style="cursor:pointer" data-jump="heatpipe">🔥 Lihat Animasi Heat Pipe</button>
+            <button class="chip" style="background:rgba(255,255,255,.08);color:#e6fff7;border:1px solid rgba(255,255,255,.15);cursor:pointer" data-jump="map">🗺️ Peta Live Satelit</button>
+            <span class="chip" style="background:rgba(0,0,0,.5);color:#7fa79b;border:1px solid #173a30">Foto: Hutan hujan tropis Kalimantan (Unsplash)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-span-4 grid grid-cols-2 gap-3">
+      <div class="glass stat-hero p-4 card-hover" style="color:#ff5a4e">
+        <div class="flex items-center justify-between"><span class="text-[10px] uppercase tracking-wider font-bold" style="color:#ff8a80">Zona Kritis</span><span class="metric-badge" style="background:rgba(255,90,78,.18);color:#ff8a80">SRI ≥ 75</span></div>
+        <p class="text-4xl font-black mt-2 tnum" style="color:#ff5a4e" id="kpi-crit">1</p>
+        <p class="text-[10px] mt-1" style="color:var(--mute)">Kec. Gambut</p>
+      </div>
+      <div class="glass stat-hero p-4 card-hover" style="color:#f5b83d">
+        <div class="flex items-center justify-between"><span class="text-[10px] uppercase tracking-wider font-bold" style="color:#ffd27a">Waspada</span><span class="metric-badge" style="background:rgba(245,184,61,.18);color:#ffd27a">50–74</span></div>
+        <p class="text-4xl font-black mt-2 tnum" style="color:#f5b83d" id="kpi-warn">2</p>
+        <p class="text-[10px] mt-1" style="color:var(--mute)">2 kecamatan</p>
+      </div>
+      <div class="glass stat-hero p-4 card-hover" style="color:#22d3a6">
+        <div class="flex items-center justify-between"><span class="text-[10px] uppercase tracking-wider font-bold" style="color:#7ff0d6">Aman</span><span class="metric-badge" style="background:rgba(34,211,166,.18);color:#7ff0d6">&lt; 50</span></div>
+        <p class="text-4xl font-black mt-2 tnum" style="color:#22d3a6" id="kpi-safe">1</p>
+        <p class="text-[10px] mt-1" style="color:var(--mute)">Martapura</p>
+      </div>
+      <div class="glass stat-hero p-4 card-hover" style="color:#38bdf8">
+        <div class="flex items-center justify-between"><span class="text-[10px] uppercase tracking-wider font-bold" style="color:#7dd3fc">Node Sensor</span><span class="metric-badge" style="background:rgba(56,189,248,.18);color:#7dd3fc">LoRaWAN</span></div>
+        <p class="text-4xl font-black mt-2 tnum" style="color:#38bdf8">18</p>
+        <p class="text-[10px] mt-1" style="color:var(--mute)">latency 42 s</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Photo strip 4 foto hutan -->
+  <div class="grid grid-cols-4 gap-3 mb-4">
+    <div class="img-card" style="height:180px">
+      <img src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=800&q=80" alt="Hutan Kalimantan" class="w-full h-full object-cover">
+      <div class="overlay"></div>
+      <div class="absolute inset-0 p-3 flex flex-col justify-end">
+        <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#22d3a6">Zona A · Gambut</p>
+        <p class="text-sm font-black leading-tight">Gambut dalam,<br>rawan smoldering</p>
+        <p class="text-[10px] mt-1" style="color:#b8e0d4">Kedalaman 0.4–1.2 m</p>
+      </div>
+    </div>
+    <div class="img-card" style="height:180px">
+      <img src="https://images.unsplash.com/photo-1425913397330-cf8af2ff40a1?auto=format&fit=crop&w=800&q=80" alt="Hutan Tropis" class="w-full h-full object-cover">
+      <div class="overlay"></div>
+      <div class="absolute inset-0 p-3 flex flex-col justify-end">
+        <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#f5b83d">Zona B · Kertak Hanyar</p>
+        <p class="text-sm font-black leading-tight">Kanal sekat<br>perlu dipantau</p>
+        <p class="text-[10px] mt-1" style="color:#b8e0d4">18 titik sekat kanal</p>
+      </div>
+    </div>
+    <div class="img-card" style="height:180px">
+      <img src="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80" alt="Hutan tropis" class="w-full h-full object-cover">
+      <div class="overlay"></div>
+      <div class="absolute inset-0 p-3 flex flex-col justify-end">
+        <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#f5b83d">Zona C · Sungai Tabuk</p>
+        <p class="text-sm font-black leading-tight">Sungai jadi<br>indikator TMAT</p>
+        <p class="text-[10px] mt-1" style="color:#b8e0d4">−35 cm di bawah normal</p>
+      </div>
+    </div>
+    <div class="img-card" style="height:180px">
+      <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=800&q=80" alt="Hutan Aman" class="w-full h-full object-cover">
+      <div class="overlay"></div>
+      <div class="absolute inset-0 p-3 flex flex-col justify-end">
+        <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#22d3a6">Zona D · Martapura</p>
+        <p class="text-sm font-black leading-tight">Kondisi stabil,<br>monitoring rutin</p>
+        <p class="text-[10px] mt-1" style="color:#b8e0d4">SRI 28/100</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: mini map + rekomendasi -->
+  <div class="grid grid-cols-12 gap-4">
+    <div class="col-span-7 glass p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-bold">🗺️ Snapshot Peta Satelit</h3>
+        <button class="text-[10px] px-2 py-1 rounded border border-[#173a30] hover:bg-[#0f211d]" data-jump="map">Buka peta penuh →</button>
+      </div>
+      <div class="relative rounded-xl overflow-hidden border border-[#173a30]" style="height:240px">
+        <div id="leafletMini"></div>
+        <div class="map-loading" id="miniLoading"><div class="spinner"></div></div>
+      </div>
+      <div class="flex items-center gap-3 mt-2 text-[10px]" style="color:var(--mute)">
+        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full" style="background:#22d3a6"></span>Aman</span>
+        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full" style="background:#f5b83d"></span>Waspada</span>
+        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full" style="background:#ff5a4e"></span>Kritis</span>
+        <span class="ml-auto">📍 Kab. Banjar, Kalsel · Esri World Imagery</span>
+      </div>
+    </div>
+
+    <div class="col-span-5 glass p-4">
+      <h3 class="text-sm font-bold mb-3 flex items-center gap-2">🎯 Rekomendasi Aksi <span class="chip" style="background:rgba(34,211,166,.12);color:#5ff0cf;font-size:9px">auto-generated</span></h3>
+      <div class="space-y-2">
+        <div class="rounded-lg p-3 flex gap-3 items-start" style="background:rgba(255,90,78,.06);border-left:3px solid #ff5a4e">
+          <div class="text-xl">🚨</div>
+          <div>
+            <p class="text-[12px] font-bold" style="color:#ffb3ad">Sekat kanal aktif di blok A-3</p>
+            <p class="text-[10px] mt-0.5" style="color:#b8e0d4">TMAT −58 cm butuh rehidrasi darurat · deadline 6 jam</p>
+          </div>
+        </div>
+        <div class="rounded-lg p-3 flex gap-3 items-start" style="background:rgba(245,184,61,.06);border-left:3px solid #f5b83d">
+          <div class="text-xl">👨‍👩‍👧</div>
+          <div>
+            <p class="text-[12px] font-bold" style="color:#ffd27a">Skenario evakuasi kelompok rentan</p>
+            <p class="text-[10px] mt-0.5" style="color:#b8e0d4">Balita, lansia, ibu hamil di Zona A · reroute ke Puskesmas Gambut</p>
+          </div>
+        </div>
+        <div class="rounded-lg p-3 flex gap-3 items-start" style="background:rgba(34,211,166,.06);border-left:3px solid #22d3a6">
+          <div class="text-xl">🛡️</div>
+          <div>
+            <p class="text-[12px] font-bold" style="color:#7ff0d6">Deploy tim MPA patroli malam</p>
+            <p class="text-[10px] mt-0.5" style="color:#b8e0d4">3 titik rawan di Gambut · durasi 4 jam · koordinasi via LoRa</p>
+          </div>
+        </div>
+        <div class="rounded-lg p-3 flex gap-3 items-start" style="background:rgba(56,189,248,.06);border-left:3px solid #38bdf8">
+          <div class="text-xl">📡</div>
+          <div>
+            <p class="text-[12px] font-bold" style="color:#7dd3fc">Sinkronisasi BPGMN & PSC 119</p>
+            <p class="text-[10px] mt-0.5" style="color:#b8e0d4">API push aktif · status tersalin otomatis</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     PANE: MAP
+════════════════════════════════════════════ -->
+<section class="pane" id="pane-map">
+  <div class="glass p-4 mb-4">
+    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+      <div>
+        <h2 class="text-base font-bold flex items-center gap-2">🗺️ Peta Satelit Live · Kabupaten Banjar</h2>
+        <p class="text-[11px] mt-0.5" style="color:var(--mute)">Tile: Esri World Imagery · Klik zona untuk drill-down · 18 node LoRaWAN · overlay hotspot NOAA-20</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex gap-1">
+          <button class="map-mode-btn active" data-mode="sat">🛰️ Satelit</button>
+          <button class="map-mode-btn" data-mode="topo">🗺️ Topografi</button>
+          <button class="map-mode-btn" data-mode="dark">🌙 Gelap</button>
+        </div>
+        <button id="toggleScan" class="px-2.5 py-1 rounded border border-[#173a30] hover:bg-[#0f211d] text-[10px]">Node: ON</button>
+        <button id="btnFly" class="px-2.5 py-1 rounded border border-[#173a30] hover:bg-[#0f211d] text-[10px]">🎯 Fit Banjar</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-12 gap-4">
+      <div class="col-span-9 relative rounded-xl overflow-hidden border border-[#173a30]">
+        <div id="leafletMain"></div>
+        <div class="map-loading" id="mainLoading"><div class="spinner"></div></div>
+
+        <!-- Legend overlay -->
+        <div class="absolute bottom-3 left-3 z-[400] map-info-box" style="max-width:260px;padding:8px 12px">
+          <p style="font-weight:800;color:#22d3a6;font-size:10px;margin-bottom:4px;letter-spacing:.5px">LEGENDA</p>
+          <div style="display:flex;flex-direction:column;gap:3px;font-size:10px;color:#b8e0d4">
+            <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff5a4e;margin-right:6px;vertical-align:middle"></span>Zona Kritis · SRI ≥ 75</div>
+            <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f5b83d;margin-right:6px;vertical-align:middle"></span>Zona Waspada · SRI 50–74</div>
+            <div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22d3a6;margin-right:6px;vertical-align:middle"></span>Zona Aman · SRI &lt; 50</div>
+            <div><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#38bdf8;margin-right:10px;vertical-align:middle"></span>Node sensor LoRaWAN</div>
+          </div>
+        </div>
+
+        <!-- Model accuracy badge -->
+        <div class="absolute top-3 right-3 z-[400] map-info-box" style="padding:8px 12px">
+          <p style="font-weight:800;font-size:10px;margin-bottom:2px">AKURASI MODEL</p>
+          <p style="font-size:9px;color:#7fa79b">PFVI×SRI hybrid · v2.3</p>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:3px;font-size:10px;color:#7ff0d6">
+            <span style="width:6px;height:6px;border-radius:50%;background:#22d3a6"></span>AUC 0.91
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;margin-top:2px;font-size:10px;color:#7dd3fc">
+            <span style="width:6px;height:6px;border-radius:50%;background:#38bdf8"></span>Recall 0.87
+          </div>
+        </div>
+      </div>
+
+      <div class="col-span-3 space-y-3">
+        <div class="rounded-xl p-3" style="background:#0b1c17;border:1px solid #173a30">
+          <p class="text-[10px] uppercase tracking-wider font-bold" style="color:var(--mute)">Zona Terpilih</p>
+          <p class="text-lg font-black mt-1" id="zoneTag2">Zona A · Gambut</p>
+          <span class="chip mt-1" id="zoneLevel2" style="background:rgba(255,90,78,.18);color:#ff8a80">KRITIS</span>
+        </div>
+
+        <div class="rounded-xl p-3" style="background:#0b1c17;border:1px solid #173a30">
+          <p class="text-[10px] uppercase tracking-wider font-bold mb-2" style="color:var(--mute)">Metrik Live</p>
+          <div class="space-y-2">
+            <div>
+              <div class="flex justify-between text-[11px]"><span style="color:var(--mute)">SRI</span><span class="font-black tnum" id="m-sri" style="color:#ff8a80">82</span></div>
+              <div class="bar-track mt-1"><div class="bar-fill" id="bar-sri" style="width:82%;background:#ff5a4e"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-[11px]"><span style="color:var(--mute)">Suhu tanah</span><span class="font-black tnum" id="m-temp" style="color:#ffd27a">61.4°C</span></div>
+              <div class="bar-track mt-1"><div class="bar-fill" id="bar-temp" style="width:76%;background:#f5b83d"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-[11px]"><span style="color:var(--mute)">Kelembapan (MC)</span><span class="font-black tnum" id="m-mc" style="color:#7dd3fc">34%</span></div>
+              <div class="bar-track mt-1"><div class="bar-fill" id="bar-mc" style="width:34%;background:#38bdf8"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-[11px]"><span style="color:var(--mute)">TMAT</span><span class="font-black tnum" id="m-tmat" style="color:#7dd3fc">−58 cm</span></div>
+              <div class="bar-track mt-1"><div class="bar-fill" id="bar-tmat" style="width:72%;background:#38bdf8"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-xl p-3" style="background:linear-gradient(120deg,rgba(255,90,78,.08),rgba(56,189,248,.05));border:1px solid #35201f">
+          <p class="text-[10px] font-bold mb-1" style="color:#ffb3ad">⚙ Detail Zona</p>
+          <p class="text-[10px] leading-snug" id="zoneDesc" style="color:#b8e0d4">Gambut dalam dengan tutupan vegetasi campuran. Area eks-Gelam, rentan api bawah tanah. 6 node sensor aktif.</p>
+        </div>
+
+        <div class="rounded-xl p-3" style="background:#0b1c17;border:1px solid #173a30">
+          <p class="text-[10px] uppercase tracking-wider font-bold mb-1" style="color:var(--mute)">Koordinat</p>
+          <p class="text-[10px] font-mono" id="zoneCoords" style="color:#7dd3fc">-3.4148, 114.6819</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Zona -->
+  <div class="glass p-4" id="layerDetail">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-base font-bold">📡 Detail Zona Terpilih</h2>
+      <span class="chip" id="zoneTag" style="background:rgba(255,90,78,.15);color:#ff8a80">Zona A · Gambut</span>
+    </div>
+    <div class="grid grid-cols-12 gap-5">
+      <div class="col-span-4 grid grid-cols-3 gap-2">
+        <div class="text-center">
+          <svg viewBox="0 0 100 100" class="w-full max-w-[130px] mx-auto">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#132821" stroke-width="9"/>
+            <circle id="g-sri" class="gauge-ring" cx="50" cy="50" r="40" fill="none" stroke="#ff5a4e" stroke-width="9" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="45" transform="rotate(-90 50 50)"/>
+            <text id="g-sri-t" x="50" y="48" text-anchor="middle" font-size="22" font-weight="800" fill="#ff8a80" font-family="Segoe UI">82</text>
+            <text x="50" y="64" text-anchor="middle" font-size="8" fill="#7fa79b" font-family="Segoe UI">SRI</text>
+          </svg>
+        </div>
+        <div class="text-center">
+          <svg viewBox="0 0 100 100" class="w-full max-w-[130px] mx-auto">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#132821" stroke-width="9"/>
+            <circle id="g-temp" class="gauge-ring" cx="50" cy="50" r="40" fill="none" stroke="#f5b83d" stroke-width="9" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="98" transform="rotate(-90 50 50)"/>
+            <text id="g-temp-t" x="50" y="48" text-anchor="middle" font-size="18" font-weight="800" fill="#ffd27a" font-family="Segoe UI">61.4</text>
+            <text x="50" y="63" text-anchor="middle" font-size="8" fill="#7fa79b" font-family="Segoe UI">°C</text>
+          </svg>
+        </div>
+        <div class="text-center">
+          <svg viewBox="0 0 100 100" class="w-full max-w-[130px] mx-auto">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#132821" stroke-width="9"/>
+            <circle id="g-moist" class="gauge-ring" cx="50" cy="50" r="40" fill="none" stroke="#38bdf8" stroke-width="9" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="163" transform="rotate(-90 50 50)"/>
+            <text id="g-moist-t" x="50" y="48" text-anchor="middle" font-size="18" font-weight="800" fill="#7dd3fc" font-family="Segoe UI">34</text>
+            <text x="50" y="63" text-anchor="middle" font-size="8" fill="#7fa79b" font-family="Segoe UI">% MC</text>
+          </svg>
+        </div>
+      </div>
+      <div class="col-span-8">
+        <div class="grid grid-cols-4 gap-2 text-[11px]">
+          <div class="rounded-lg p-2.5" style="background:#0b1c17;border:1px solid #173a30">
+            <p style="color:var(--mute)">TMAT</p>
+            <p class="font-black text-base tnum" style="color:#7dd3fc">−58 cm</p>
+            <p class="text-[9px]" style="color:#ff8a80">↓ ambang 40 cm</p>
+          </div>
+          <div class="rounded-lg p-2.5" style="background:#0b1c17;border:1px solid #173a30">
+            <p style="color:var(--mute)">Zona Pembakaran</p>
+            <p class="font-black text-base" style="color:#ffd27a">Smoldering</p>
+            <p class="text-[9px]" style="color:#ff8a80">0.4–1.2 m</p>
+          </div>
+          <div class="rounded-lg p-2.5" style="background:#0b1c17;border:1px solid #173a30">
+            <p style="color:var(--mute)">Node Aktif</p>
+            <p class="font-black text-base tnum" style="color:#22d3a6">6/6</p>
+            <p class="text-[9px]" style="color:#7ff0d6">RSSI −68 dBm</p>
+          </div>
+          <div class="rounded-lg p-2.5" style="background:#0b1c17;border:1px solid #173a30">
+            <p style="color:var(--mute)">Sekat Kanal</p>
+            <p class="font-black text-base tnum" style="color:#f5b83d">4 unit</p>
+            <p class="text-[9px]" style="color:#ffd27a">2 perlu rehidrasi</p>
+          </div>
+        </div>
+        <canvas id="liveChart" height="130" class="mt-3"></canvas>
+      </div>
+    </div>
+    <div class="mt-4 rounded-lg p-3 text-[11px]" style="background:linear-gradient(120deg,rgba(255,90,78,.08),rgba(56,189,248,.05));border:1px solid #35201f">
+      <p class="font-bold mb-1" style="color:#ffb3ad">⚙ Perhitungan SRI · Zona A</p>
+      <div class="flex flex-wrap gap-x-4 gap-y-1" style="color:var(--mute)">
+        <span>w₁ · (T<sub>tanah</sub>/60°C)</span><span>+ w₂ · (1 − MC/60%)</span><span>+ w₃ · |TMAT|/80cm</span>
+        <span>= <b style="color:#ff5a4e">0.82</b> → <b style="color:#ff5a4e">KRITIS</b></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     PANE: HEAT PIPE — INTERAKTIF
+════════════════════════════════════════════ -->
+<section class="pane" id="pane-heatpipe">
+  <div class="glass overflow-hidden mb-4 relative" style="height:240px">
+    <img src="https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=1800&q=80" class="w-full h-full object-cover" style="filter:saturate(.8) brightness(.5)">
+    <div class="absolute inset-0" style="background:linear-gradient(110deg,rgba(3,10,8,.95) 0%,rgba(3,10,8,.65) 50%,rgba(3,10,8,.1) 100%)"></div>
+    <div class="absolute inset-0 p-6 flex flex-col justify-center max-w-xl">
+      <p class="text-[10px] font-bold uppercase tracking-[.25em]" style="color:#22d3a6">LAYER 3 · TEKNOLOGI</p>
+      <h2 class="text-2xl font-black mt-2 leading-tight">Bio-Wick Heat Pipe</h2>
+      <p class="text-sm mt-2 leading-relaxed" style="color:#b8e0d4">Perangkat pasif yang menyalurkan panas dari lapisan gambut basah ke vegetasi di atasnya. Kombinasi <b style="color:#7ff0d6">kapilaritas bio-wick</b> + <b style="color:#7ff0d6">siklus pendinginan evaporatif</b> menurunkan suhu gambut hingga 8–12°C tanpa listrik.</p>
+      <div class="flex gap-2 mt-3">
+        <span class="chip" style="background:rgba(34,211,166,.15);color:#5ff0cf">🔥 6 unit terpasang Zona A</span>
+        <span class="chip" style="background:rgba(56,189,248,.12);color:#7dd3fc">❄️ Passive cooling</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass p-4 mb-4">
+    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+      <div>
+        <h3 class="text-base font-bold">🔬 Diagram Interaktif Heat Pipe · Penampang Vertikal</h3>
+        <p class="text-[11px]" style="color:var(--mute)">Klik node atau geser slider untuk melihat simulasi aliran panas & efek pendinginan</p>
+      </div>
+      <div class="flex gap-2 text-[11px]">
+        <button class="chip" style="background:rgba(56,189,248,.15);color:#7dd3fc;cursor:pointer" id="hpMode-cool">❄ Cool Mode</button>
+        <button class="chip" style="background:rgba(245,184,61,.15);color:#ffd27a;cursor:pointer" id="hpMode-dry">🔥 Dry Mode</button>
+        <button class="chip" style="background:rgba(34,211,166,.15);color:#7ff0d6;cursor:pointer" id="hpMode-auto">⚙ Auto</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-12 gap-4">
+      <div class="col-span-8 relative rounded-xl overflow-hidden border border-[#173a30]" style="background:linear-gradient(180deg,#0f2822 0%,#0a1a15 40%,#061210 100%)">
+        <svg viewBox="0 0 800 480" class="w-full h-auto" id="hotpipeSVG">
+          <defs>
+            <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0c2a26"/>
+              <stop offset="100%" stop-color="#0a1e1a"/>
+            </linearGradient>
+            <linearGradient id="peatGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2c1810"/>
+              <stop offset="50%" stop-color="#1a0e08"/>
+              <stop offset="100%" stop-color="#0f0805"/>
+            </linearGradient>
+            <radialGradient id="heatGrad">
+              <stop offset="0%" stop-color="#ff5a4e" stop-opacity=".8"/>
+              <stop offset="100%" stop-color="#d1004b" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="coolGrad">
+              <stop offset="0%" stop-color="#38bdf8" stop-opacity=".8"/>
+              <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+
+          <rect width="800" height="200" fill="url(#skyGrad)"/>
+
+          <g opacity="0.85">
+            <path d="M0 200 Q60 130 120 170 Q180 120 240 160 Q300 110 380 150 Q440 100 520 145 Q580 115 640 155 Q700 120 760 160 Q790 170 800 175 L800 200 Z" fill="#0f3a2c"/>
+            <path d="M0 200 Q80 155 160 180 Q240 145 320 180 Q400 150 480 175 Q560 145 640 175 Q720 150 800 180 L800 200 Z" fill="#154a38"/>
+          </g>
+
+          <rect x="0" y="200" width="800" height="8" fill="#1c5a3f"/>
+          <rect x="0" y="208" width="800" height="272" fill="url(#peatGrad)"/>
+
+          <g opacity="0.4" stroke="#3a2510" stroke-width="0.7" fill="none">
+            <path d="M0 240 Q200 235 400 245 T800 240"/>
+            <path d="M0 280 Q200 275 400 285 T800 280"/>
+            <path d="M0 340 Q200 335 400 345 T800 340"/>
+            <path d="M0 400 Q200 395 400 405 T800 400"/>
+          </g>
+
+          <circle class="heat-zone" data-zone="peatlow" cx="400" cy="380" r="90" fill="url(#heatGrad)" opacity="0.7"/>
+          <circle class="heat-zone" data-zone="peatmid" cx="400" cy="300" r="70" fill="url(#heatGrad)" opacity="0.5"/>
+          <circle class="heat-zone" data-zone="surf" cx="400" cy="205" r="55" fill="url(#coolGrad)" opacity="0.4"/>
+
+          <g font-family="Segoe UI" font-size="10" fill="#7fa79b">
+            <text x="30" y="230">0 cm</text>
+            <text x="30" y="290">−30 cm</text>
+            <text x="30" y="350">−60 cm</text>
+            <text x="30" y="420">−90 cm</text>
+          </g>
+
+          <g id="heatPipe">
+            <rect x="385" y="280" width="30" height="130" fill="#2c8a6f" opacity="0.7"/>
+            <rect x="385" y="280" width="30" height="130" fill="url(#coolGrad)" opacity="0.2"/>
+            <rect x="385" y="160" width="30" height="260" rx="4" fill="rgba(200,220,215,.12)" stroke="#22d3a6" stroke-width="1.5"/>
+            <rect x="387" y="162" width="8" height="256" fill="rgba(255,255,255,.06)"/>
+            <rect x="390" y="165" width="20" height="110" fill="rgba(255,90,78,.08)"/>
+            <rect x="390" y="280" width="20" height="135" fill="rgba(56,189,248,.08)"/>
+
+            <g class="heat-flow-group">
+              <path d="M400 275 L400 180" stroke="#ff8a80" stroke-width="2.5" stroke-dasharray="6 6" fill="none" class="heat-flow"/>
+              <path d="M395 260 L400 250 L405 260" fill="none" stroke="#ff8a80" stroke-width="2"/>
+              <path d="M395 220 L400 210 L405 220" fill="none" stroke="#ff8a80" stroke-width="2"/>
+            </g>
+
+            <g class="cool-flow-group">
+              <path d="M405 285 L405 405" stroke="#7dd3fc" stroke-width="1.5" stroke-dasharray="4 5" fill="none" opacity="0.6"/>
+            </g>
+
+            <g opacity="0.6">
+              <path d="M388 290 L412 290 M388 300 L412 300 M388 310 L412 310 M388 320 L412 320 M388 330 L412 330 M388 340 L412 340 M388 350 L412 350 M388 360 L412 360 M388 370 L412 370 M388 380 L412 380 M388 390 L412 390 M388 400 L412 400" stroke="#22d3a6" stroke-width="0.8"/>
+            </g>
+
+            <g class="heat-vapor">
+              <ellipse cx="380" cy="155" rx="18" ry="6" fill="#a7f3d0" opacity="0.3"/>
+              <ellipse cx="420" cy="150" rx="14" ry="5" fill="#a7f3d0" opacity="0.25"/>
+              <ellipse cx="400" cy="148" rx="22" ry="5" fill="#a7f3d0" opacity="0.35"/>
+            </g>
+
+            <g>
+              <path d="M400 160 Q400 140 400 120" stroke="#22d3a6" stroke-width="2" fill="none"/>
+              <path d="M400 140 Q380 130 365 115" stroke="#22d3a6" stroke-width="1.5" fill="none"/>
+              <path d="M400 130 Q420 120 435 105" stroke="#22d3a6" stroke-width="1.5" fill="none"/>
+              <ellipse cx="365" cy="113" rx="10" ry="5" fill="#22d3a6"/>
+              <ellipse cx="435" cy="103" rx="10" ry="5" fill="#22d3a6"/>
+              <ellipse cx="400" cy="115" rx="8" ry="6" fill="#22d3a6"/>
+            </g>
+
+            <g class="flame" style="transform-origin:400px 420px">
+              <ellipse cx="400" cy="425" rx="20" ry="8" fill="#ff5a4e" opacity="0.4"/>
+              <path d="M400 395 Q385 415 395 428 Q400 432 405 428 Q415 415 400 395 Z" fill="#ff8a80"/>
+            </g>
+
+            <g class="heatpipe-node" data-node="top" style="color:#22d3a6">
+              <circle cx="400" cy="120" r="9" fill="#22d3a6" fill-opacity="0.25"/>
+              <circle cx="400" cy="120" r="4" fill="#22d3a6"/>
+              <text x="430" y="118" font-size="10" fill="#7ff0d6" font-family="Segoe UI" font-weight="700">Evaporasi</text>
+            </g>
+            <g class="heatpipe-node" data-node="vapor" style="color:#ff8a80">
+              <circle cx="400" cy="220" r="9" fill="#ff8a80" fill-opacity="0.25"/>
+              <circle cx="400" cy="220" r="4" fill="#ff8a80"/>
+              <text x="430" y="218" font-size="10" fill="#ffb3ad" font-family="Segoe UI" font-weight="700">Vapor naik</text>
+            </g>
+            <g class="heatpipe-node" data-node="wick" style="color:#7dd3fc">
+              <circle cx="400" cy="330" r="9" fill="#7dd3fc" fill-opacity="0.25"/>
+              <circle cx="400" cy="330" r="4" fill="#7dd3fc"/>
+              <text x="430" y="328" font-size="10" fill="#7dd3fc" font-family="Segoe UI" font-weight="700">Wick basah</text>
+            </g>
+            <g class="heatpipe-node" data-node="peat" style="color:#ff5a4e">
+              <circle cx="400" cy="400" r="9" fill="#ff5a4e" fill-opacity="0.25"/>
+              <circle cx="400" cy="400" r="4" fill="#ff5a4e"/>
+              <text x="430" y="398" font-size="10" fill="#ffb3ad" font-family="Segoe UI" font-weight="700">Smoldering</text>
+            </g>
+
+            <g font-family="Segoe UI" font-size="10" fill="#22d3a6">
+              <text x="240" y="225" text-anchor="middle" id="hp-temp-surf" font-weight="800" font-size="13">32°C</text>
+              <text x="240" y="240" text-anchor="middle" opacity="0.7">permukaan</text>
+            </g>
+            <g font-family="Segoe UI" font-size="10" fill="#f5b83d">
+              <text x="240" y="330" text-anchor="middle" id="hp-temp-mid" font-weight="800" font-size="13">52°C</text>
+              <text x="240" y="345" text-anchor="middle" opacity="0.7">−60 cm</text>
+            </g>
+            <g font-family="Segoe UI" font-size="10" fill="#ff5a4e">
+              <text x="240" y="410" text-anchor="middle" id="hp-temp-deep" font-weight="800" font-size="13">68°C</text>
+              <text x="240" y="425" text-anchor="middle" opacity="0.7">−90 cm</text>
+            </g>
+
+            <g font-family="Segoe UI" font-size="10" fill="#7fa79b">
+              <text x="740" y="180" text-anchor="end" font-weight="700" fill="#22d3a6">Cooling effect</text>
+              <text x="740" y="196" text-anchor="end" id="hp-cool-effect">−12°C pada −30cm</text>
+              <line x1="640" y1="200" x2="450" y2="220" stroke="#22d3a6" stroke-width="0.7" stroke-dasharray="3 3"/>
+            </g>
+          </g>
+        </svg>
+
+        <div class="absolute top-3 left-3 rounded-lg px-3 py-2 text-[10px] glass" style="background:rgba(6,17,15,.9)">
+          <p class="font-bold mb-1">Status Unit</p>
+          <div class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span style="color:#7ff0d6">6 unit aktif</span></div>
+          <div class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span style="color:#ffd27a">2 perlu wick servicing</span></div>
+          <div class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span><span style="color:#ff8a80">1 di area kritis</span></div>
+        </div>
+      </div>
+
+      <div class="col-span-4 space-y-3">
+        <div class="rounded-xl p-3" style="background:#0b1c17;border:1px solid #173a30">
+          <p class="text-[11px] font-bold mb-2">🎛️ Kontrol Simulasi</p>
+          <label class="text-[10px] flex justify-between mb-1"><span style="color:var(--mute)">Kedalaman wick</span><span class="font-black" style="color:#7dd3fc"><span id="wick-depth">120</span> cm</span></label>
+          <input type="range" id="slider-wick" class="slider w-full" min="60" max="160" value="120" style="background:linear-gradient(90deg,#38bdf8 0%,#38bdf8 60%,#1b3830 60%,#1b3830 100%)">
+
+          <label class="text-[10px] flex justify-between mb-1 mt-3"><span style="color:var(--mute)">Kapilaritas wick</span><span class="font-black" style="color:#22d3a6"><span id="cap-rate">78</span>%</span></label>
+          <input type="range" id="slider-cap" class="slider w-full" min="20" max="100" value="78" style="background:linear-gradient(90deg,#22d3a6 0%,#22d3a6 78%,#1b3830 78%,#1b3830 100%)">
+
+          <label class="text-[10px] flex justify-between mb-1 mt-3"><span style="color:var(--mute)">Luas permukaan pipa</span><span class="font-black" style="color:#f5b83d"><span id="pipe-area">2.4</span> m²</span></label>
+          <input type="range" id="slider-area" class="slider w-full" min="5" max="50" value="24" style="background:linear-gradient(90deg,#f5b83d 0%,#f5b83d 48%,#1b3830 48%,#1b3830 100%)">
+        </div>
+
+        <div class="rounded-xl p-3" style="background:linear-gradient(135deg,rgba(56,189,248,.08),rgba(34,211,166,.05));border:1px solid #173a30">
+          <p class="text-[11px] font-bold mb-2">📊 Efisiensi Pendinginan</p>
+          <div class="flex items-baseline gap-2">
+            <span class="text-3xl font-black tnum" style="color:#22d3a6" id="eff-value">−12.4°C</span>
+            <span class="text-[10px]" style="color:var(--mute)">estimasi</span>
+          </div>
+          <div class="bar-track mt-2"><div class="bar-fill" id="eff-bar" style="width:70%;background:linear-gradient(90deg,#22d3a6,#38bdf8)"></div></div>
+          <p class="text-[10px] mt-2" style="color:var(--mute)">Menurunkan suhu gambut 30cm di Zona A</p>
+        </div>
+
+        <div class="rounded-xl p-3" style="background:#0b1c17;border:1px solid #173a30">
+          <p class="text-[11px] font-bold mb-2">🔍 Info Node</p>
+          <p class="text-[10px]" id="node-info" style="color:#b8e0d4">Klik node di diagram untuk melihat detail komponen.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-12 gap-4">
+    <div class="col-span-8 grid grid-cols-3 gap-3">
+      <div class="img-card" style="height:160px">
+        <img src="https://images.unsplash.com/photo-1574263867128-a3d5c1b1deae?auto=format&fit=crop&w=900&q=80" alt="Gambut" class="w-full h-full object-cover">
+        <div class="overlay"></div>
+        <div class="absolute inset-0 p-3 flex flex-col justify-end">
+          <p class="text-[9px] font-bold uppercase" style="color:#22d3a6">Instalasi</p>
+          <p class="text-xs font-black">Pipa ditanam vertikal</p>
+          <p class="text-[9px]" style="color:#b8e0d4">kedalaman 60–120 cm</p>
+        </div>
+      </div>
+      <div class="img-card" style="height:160px">
+        <img src="https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=900&q=80" alt="Bio material" class="w-full h-full object-cover">
+        <div class="overlay"></div>
+        <div class="absolute inset-0 p-3 flex flex-col justify-end">
+          <p class="text-[9px] font-bold uppercase" style="color:#7dd3fc">Wick Material</p>
+          <p class="text-xs font-black">Serat kelapa + jerami</p>
+          <p class="text-[9px]" style="color:#b8e0d4">100% biodegradable</p>
+        </div>
+      </div>
+      <div class="img-card" style="height:160px">
+        <img src="https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=900&q=80" alt="Canopy" class="w-full h-full object-cover">
+        <div class="overlay"></div>
+        <div class="absolute inset-0 p-3 flex flex-col justify-end">
+          <p class="text-[9px] font-bold uppercase" style="color:#f5b83d">Vegetasi</p>
+          <p class="text-xs font-black">Tanaman penyerap</p>
+          <p class="text-[9px]" style="color:#b8e0d4">+tanaman hias tepi kanal</p>
+        </div>
+      </div>
+
+      <div class="col-span-3 rounded-xl p-3" style="background:#0b1c17;border:1px solid #173a30">
+        <p class="text-[11px] font-bold mb-2">Spesifikasi</p>
+        <div class="text-[10px] space-y-1.5" style="color:var(--mute)">
+          <div class="flex justify-between"><span>Material pipa</span><span class="text-white">Stainless 304</span></div>
+          <div class="flex justify-between"><span>Diameter</span><span class="text-white">40 mm</span></div>
+          <div class="flex justify-between"><span>Panjang</span><span class="text-white">1.2 m</span></div>
+          <div class="flex justify-between"><span>Wick</span><span class="text-white">Coconut fiber</span></div>
+          <div class="flex justify-between"><span>Fluid</span><span class="text-white">Air + bio-surfactant</span></div>
+          <div class="flex justify-between"><span>Umur pakai</span><span class="text-white">~3 tahun</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     PANE: 4 LAYERS
+════════════════════════════════════════════ -->
+<section class="pane" id="pane-layers">
+  <div class="glass overflow-hidden mb-4 relative" style="height:220px">
+    <img src="https://images.unsplash.com/photo-1425913397330-cf8af2ff40a1?auto=format&fit=crop&w=1800&q=80" class="w-full h-full object-cover" style="filter:saturate(.8) brightness(.5)">
+    <div class="absolute inset-0" style="background:linear-gradient(110deg,rgba(3,10,8,.95) 0%,rgba(3,10,8,.45) 55%,rgba(3,10,8,.1) 100%)"></div>
+    <div class="absolute inset-0 p-6 flex flex-col justify-center max-w-2xl">
+      <p class="text-[10px] font-bold uppercase tracking-[.25em]" style="color:#22d3a6">ARSITEKTUR SISTEM</p>
+      <h2 class="text-2xl font-black mt-2 leading-tight">4 Lapis Terintegrasi Menuju<br>Nol Karhutla</h2>
+      <p class="text-sm mt-2 leading-relaxed" style="color:#b8e0d4">Dari pemetaan kerentanan hingga respons komunitas — setiap lapis saling mengunci dan berbagi data melalui satu dashboard.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-4 gap-4">
+    <div class="glass layer-col p-4 active" data-layer="1" style="border-color:rgba(56,189,248,.4)">
+      <div class="flex items-center justify-between mb-2">
+        <span class="metric-badge" style="background:rgba(56,189,248,.15);color:#7dd3fc">LAYER 1</span>
+        <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+      </div>
+      <p class="text-base font-bold">PFVI Mapping</p>
+      <p class="text-[10px] mt-1" style="color:var(--mute)">Pemetaan kerentanan berbasis TMAT, kelembapan, curah hujan, tutupan lahan.</p>
+      <div class="mt-3 space-y-1">
+        <div class="text-[10px] flex justify-between"><span style="color:var(--mute)">Cakupan</span><span class="text-white">48.000 ha</span></div>
+        <div class="text-[10px] flex justify-between"><span style="color:var(--mute)">Resolusi</span><span class="text-white">10 m (S2)</span></div>
+        <div class="text-[10px] flex justify-between"><span style="color:var(--mute)">Update</span><span class="text-white">5 hari</span></div>
+      </div>
+      <div class="bar-track mt-3"><div class="bar-fill" style="width:100%;background:linear-gradient(90deg,#38bdf8,#0ea5e9)"></div></div>
+    </div>
+
+    <div class="glass layer-col p-4" data-layer="2" style="border-color:rgba(255,90,78,.4)">
+      <div class="flex items-center justify-between mb-2">
+        <span class="metric-badge" style="background:rgba(255,90,78,.15);color:#ff8a80">LAYER 2</span>
+        <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+      </div>
+      <p class="text-base font-bold">Early Warning</p>
+      <p class="text-[10px] mt-1" style="color:var(--mute)">SRI dari 18 node sensor tanah · dashboard ini</p>
+      <div class="mt-3 space-y-1">
+        <div class="text-[10px] flex justify-between"><span style="color:var(--mute)">Node</span><span class="text-white">18/18 live</span></div>
+        <div class="text-[10px] flex justify-between"><span style="color:var(--mute)">Latency</span><span class="text-white">42 s</span></div>
+        <div class="text-[10px] flex justify-between"><span style="color:var(--mute)">Akurasi</span><span class="text-white">AUC 0.91</span></div>
+      </div>
+      <div class="bar-track mt-3"><div class="bar-fill" style="width:82%;background:linear-gradient(90deg,#ff5a4e,#d1004b)"></div></div>
+    </div>
+
+    <div class="glass layer-col p-4" data-layer="3" style="border-color:rgba(34,211,166,.4)">
+      <div class="flex items-center justify-between mb-2">
+        <span class="metric-badge" style="background:rgba(34,211,166,.15);color:#7ff0d6">LAYER 3</span>
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+      </div>
+      <p class="text-base font-bold">Bio-Wick Heat Pipe</p>
+      <p class="text-[10px] mt-1" style="color:var(--mute)">6 unit terpasang di Zona A · pendinginan pasif</p>
+      <div class="mt-3 space-y-1">
+        <div class="text-[10px] flex justify-between"><span style="color:var(--mute)">Unit</span><span class="text-white">6 aktif</span></div>
+        <div class="text-[10px] flex justify-between"><span style="color:var(--mute)">ΔT rata-rata</span><span class="text-white">−12°C</span></div>
+        <div class="text-[10px] flex justify-between"><span style="color:var(--mute)">Servicing</span><span class="text-white">2 minggu</span></div>
+      </div>
+      <div class="bar-track mt-3"><div class="bar-fill" style="width:60%;background:linear-gradient(90deg,#22d3a6,#0d8f6f)"></div></div>
+    </div>
+
+    <div class="glass layer-col p-4" data-layer="4" style="border-color:rgba(245,184,61,.4)">
+      <div class="flex items-center justify-between mb-2">
+        <span class="metric-badge" style="background:rgba(245,184,61,.15);color:#ffd27a">LAYER 4</span>
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+      </div>
+      <p class="text-base font-bold">Community Response</p>
+      <p class="text-[10px] mt-1" style="color:var(--mute)">MPA · Puskesmas · sekolah · edukasi publik</p>
+      <div class="mt-3 space-y-1">
+        <div class="text-[10px] flex justify-between"><span style="color:var(--mute)">MPA aktif</span><span class="text-white">42 orang</span></div>
+        <div class="text-[10px] flex justify-between"><span style="color:var(--mute)">Puskesmas</span><span class="text-white">4 terlibat</span></div>
+        <div class="text-[10px] flex justify-between"><span style="color:var(--mute)">Sekolah</span><span class="text-white">12 program</span></div>
+      </div>
+      <div class="bar-track mt-3"><div class="bar-fill" style="width:45%;background:linear-gradient(90deg,#f5b83d,#c4851a)"></div></div>
+    </div>
+  </div>
+
+  <div class="glass p-5 mt-4" id="layerPanel">
+    <div class="grid grid-cols-3 gap-5">
+      <div class="col-span-2">
+        <p class="text-[10px] uppercase tracking-widest font-bold mb-1" style="color:#22d3a6" id="layerPanelTag">LAYER 1</p>
+        <h3 class="text-lg font-black" id="layerPanelTitle">PFVI Mapping</h3>
+        <p class="text-[12px] mt-2 leading-relaxed" style="color:#b8e0d4" id="layerPanelDesc">Pemodelan spasial untuk mengidentifikasi area gambut yang rentan terhadap smoldering dengan overlay TMAT, kelembapan tanah, curah hujan, dan tutupan lahan. Data diperbarui setiap 5 hari berdasarkan citra Sentinel-2 dan satelit NOAA.</p>
+        <div class="grid grid-cols-3 gap-2 mt-3" id="layerMetrics"></div>
+      </div>
+      <div class="rounded-xl overflow-hidden relative" style="height:200px">
+        <img id="layerImg" src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" style="filter:saturate(.8) brightness(.65)">
+        <div class="absolute inset-0" style="background:linear-gradient(180deg,transparent 40%,rgba(3,10,8,.9) 100%)"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     PANE: ANALYTICS
+════════════════════════════════════════════ -->
+<section class="pane" id="pane-analytics">
+  <div class="grid grid-cols-12 gap-4">
+    <div class="col-span-8 glass p-4">
+      <h3 class="text-sm font-bold mb-3">📈 Tren SRI 24 Jam · 4 Zona</h3>
+      <canvas id="trendChart" height="200"></canvas>
+    </div>
+    <div class="col-span-4 glass p-4">
+      <h3 class="text-sm font-bold mb-3">🥧 Distribusi Level</h3>
+      <canvas id="pieChart" height="200"></canvas>
+    </div>
+
+    <div class="col-span-4 glass p-4">
+      <h3 class="text-sm font-bold mb-3">🌡️ Suhu Tanah</h3>
+      <canvas id="tempChart" height="180"></canvas>
+    </div>
+    <div class="col-span-4 glass p-4">
+      <h3 class="text-sm font-bold mb-3">💧 Kelembapan (MC)</h3>
+      <canvas id="mcChart" height="180"></canvas>
+    </div>
+    <div class="col-span-4 glass p-4">
+      <h3 class="text-sm font-bold mb-3">🌊 TMAT</h3>
+      <canvas id="tmatChart" height="180"></canvas>
+    </div>
+
+    <div class="col-span-12 glass p-4">
+      <h3 class="text-sm font-bold mb-3">🗺️ Matriks Cluster Risiko · Grid 4×4</h3>
+      <div class="grid grid-cols-4 gap-1.5" style="max-width:500px" id="clusterGrid"></div>
+      <div class="flex items-center gap-4 mt-3 text-[10px]" style="color:var(--mute)">
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#22d3a6"></span>Rendah</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#f5b83d"></span>Sedang</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background:#ff5a4e"></span>Tinggi</span>
+        <span>Hover untuk detail per cluster</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     PANE: LOG
+════════════════════════════════════════════ -->
+<section class="pane" id="pane-log">
+  <div class="glass p-4">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-base font-bold">📋 Log Telemetri Live</h3>
+      <div class="flex items-center gap-2 text-[10px]">
+        <span class="chip" style="background:rgba(34,211,166,.15);color:#7ff0d6;cursor:pointer" id="filterAll">SEMUA</span>
+        <span class="chip" style="background:rgba(255,90,78,.15);color:#ff8a80;cursor:pointer" id="filterCrit">KRITIS</span>
+        <span class="chip" style="background:rgba(56,189,248,.15);color:#7dd3fc;cursor:pointer" id="filterInfo">INFO</span>
+        <span>Auto-update 3 detik</span>
+      </div>
+    </div>
+    <div id="log" class="space-y-1 text-[11px] font-mono max-h-[600px] overflow-y-auto"></div>
+  </div>
+</section>
+
+</main>
+
+<footer class="max-w-[1700px] mx-auto px-6 py-6 text-[10px]" style="color:var(--mute)">
+  <div class="flex flex-wrap items-center justify-between gap-2 border-t border-[#173a30] pt-4">
+    <p>© 2026 SIGAP GAMBUT · Layer 2 Early Detection — Pilot Kab. Banjar, Kalsel · Prototipe antarmuka</p>
+    <p>Peta: © Esri World Imagery, OpenStreetMap contributors · Foto: Unsplash</p>
+  </div>
+</footer>
+
+<!-- ALERT MODAL -->
+<div class="modal-backdrop" id="alertModal">
+  <div class="modal-panel glass p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-black">🔔 Notifikasi Terbaru</h2>
+      <button class="text-2xl" style="color:var(--mute)" onclick="document.getElementById('alertModal').classList.remove('open')">×</button>
+    </div>
+    <div class="space-y-3">
+      <div class="rounded-xl p-4 alert-flash" style="background:linear-gradient(135deg,#5c0f1f,#8f1230);border:1px solid #ff5a4e">
+        <div class="flex items-start gap-3">
+          <div class="text-3xl">🚨</div>
+          <div class="flex-1">
+            <p class="text-[10px] font-black tracking-widest" style="color:#ffb3b3">PERINGATAN KRITIS · LAYER 2</p>
+            <p class="text-lg font-bold mt-0.5" style="color:#fff">Zona A — Kec. Gambut · SRI 82/100</p>
+            <p class="text-[12px] mt-1" style="color:#ffd0d0">Suhu tanah 61.4°C · MC 34% · TMAT −58 cm. Potensi smoldering aktif &lt;12 jam. Rekomendasi: sekat kanal blok A-3, evakuasi kelompok rentan.</p>
+            <div class="flex gap-2 mt-2">
+              <button class="chip" style="background:#ffd0d0;color:#3b0a13;cursor:pointer" data-jump="heatpipe">Lihat Heat Pipe</button>
+              <button class="chip" style="background:transparent;border:1px solid #ff8a80;color:#ffd0d0;cursor:pointer" data-jump="map">Lihat Peta</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rounded-xl p-4" style="background:rgba(245,184,61,.08);border:1px solid rgba(245,184,61,.35)">
+        <div class="flex items-start gap-3">
+          <div class="text-2xl">⚠️</div>
+          <div class="flex-1">
+            <p class="text-[10px] font-black tracking-widest" style="color:#ffd27a">WASPADA</p>
+            <p class="text-sm font-bold mt-0.5">Zona C · Sungai Tabuk · SRI 54</p>
+            <p class="text-[11px] mt-1" style="color:#e5cf9c">Kelembapan tanah turun 6% dalam 6 jam. Disarankan pantau.</p>
+          </div>
+        </div>
+      </div>
+      <div class="rounded-xl p-4" style="background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.25)">
+        <div class="flex items-start gap-3">
+          <div class="text-2xl">🛰️</div>
+          <div class="flex-1">
+            <p class="text-[10px] font-black tracking-widest" style="color:#7dd3fc">INFO SATELIT</p>
+            <p class="text-sm font-bold mt-0.5">NOAA-20 · hotspot terdeteksi</p>
+            <p class="text-[11px] mt-1" style="color:#9fc4cc">Radar mendeteksi anomali termal di radius 2.4 km dari Zona A pada 14:21 WITA.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════ CONFIG ZONA + KOORDINAT ASLI ════════════════ */
+const ZONES = {
+  A:{name:'Gambut',lat:-3.4148,lng:114.6819,radius:3200,sri:82,temp:61.4,mc:34,tmat:-58,level:'crit',color:'#ff5a4e',soft:'#ff8a80',nodes:6,desc:'Gambut dalam dengan tutupan vegetasi campuran. Area eks-Gelam, rentan api bawah tanah. 6 node sensor aktif.'},
+  B:{name:'Kertak Hanyar',lat:-3.3606,lng:114.6290,radius:2800,sri:47,temp:42.1,mc:48,tmat:-28,level:'safe',color:'#22d3a6',soft:'#7ff0d6',nodes:4,desc:'Kanal sekat berfungsi baik. Tutupan semak belukar. 4 node sensor aktif.'},
+  C:{name:'Sungai Tabuk',lat:-3.4307,lng:114.7281,radius:2600,sri:54,temp:45.8,mc:41,tmat:-35,level:'warn',color:'#f5b83d',soft:'#ffd27a',nodes:3,desc:'Dekat area Sungai Tabuk. TMAT mendekati ambang meski bukan kritis. 3 node sensor aktif.'},
+  D:{name:'Martapura',lat:-3.4105,lng:114.8640,radius:3000,sri:28,temp:32.4,mc:58,tmat:-15,level:'safe',color:'#22d3a6',soft:'#7ff0d6',nodes:5,desc:'Area pertanian & permukiman. Tutupan lahan basah, kondisi stabil. 5 node sensor aktif.'}
+};
+let selectedZone = 'A';
+
+function levelOf(sri){
+  if(sri>=75) return {lvl:'crit',color:'#ff5a4e',soft:'#ff8a80',label:'KRITIS'};
+  if(sri>=50) return {lvl:'warn',color:'#f5b83d',soft:'#ffd27a',label:'WASPADA'};
+  return {lvl:'safe',color:'#22d3a6',soft:'#7ff0d6',label:'AMAN'};
+}
+
+/* ════════════════ CLOCK ════════════════ */
+setInterval(()=>{
+  const now = new Date();
+  const wita = new Date(now.getTime() + (now.getTimezoneOffset()+480)*60000);
+  const hh = String(wita.getHours()).padStart(2,'0');
+  const mm = String(wita.getMinutes()).padStart(2,'0');
+  const ss = String(wita.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = `${hh}:${mm}:${ss} WITA`;
+},1000);
+
+/* ════════════════ TABS ════════════════ */
+document.querySelectorAll('.tabbtn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.tabbtn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    const pane = b.dataset.pane;
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('pane-'+pane).classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+    // map needs resize after becoming visible
+    if(pane==='map' && mainMap){ setTimeout(()=>mainMap.invalidateSize(),150); }
+    if(pane==='overview' && miniMap){ setTimeout(()=>miniMap.invalidateSize(),150); }
+  });
+});
+
+document.querySelectorAll('[data-jump]').forEach(el=>{
+  el.addEventListener('click',()=>{
+    const target = el.dataset.jump;
+    const btn = document.querySelector(`.tabbtn[data-pane="${target}"]`);
+    if(btn) btn.click();
+    document.getElementById('alertModal').classList.remove('open');
+  });
+});
+
+/* ════════════════ LEAFLET: BASE LAYERS ════════════════ */
+const baseLayers = {
+  sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19, attribution: '© Esri World Imagery'
+  }),
+  topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    maxZoom: 17, attribution: '© OpenTopoMap'
+  }),
+  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19, attribution: '© CARTO · OSM'
+  })
+};
+
+/* ════════════════ MAIN MAP ════════════════ */
+const mainMap = L.map('leafletMain', {
+  center: [-3.41, 114.72],
+  zoom: 11,
+  zoomControl: true,
+  attributionControl: true,
+  preferCanvas: true
+});
+baseLayers.sat.addTo(mainMap);
+baseLayers.topo.addTo(mainMap);
+mainMap.removeLayer(baseLayers.topo);
+
+// Zoom control position
+mainMap.zoomControl.setPosition('topright');
+
+// Loading handler
+mainMap.whenReady(()=>{
+  setTimeout(()=>document.getElementById('mainLoading').classList.add('hide'), 500);
+});
+
+// Mode switcher
+document.querySelectorAll('.map-mode-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.map-mode-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const mode = btn.dataset.mode;
+    Object.values(baseLayers).forEach(l=>mainMap.removeLayer(l));
+    baseLayers[mode].addTo(mainMap);
+    baseLayers[mode].bringToBack();
+    // re-append zone layers & nodes on top
+    zoneLayers.forEach(z=>z.bringToFront());
+    nodeLayers.forEach(n=>n.bringToFront());
+    hotspotLayers.forEach(h=>h.bringToFront());
+  });
+});
+
+// Store layers for re-ordering
+const zoneLayers = [];
+const nodeLayers = [];
+const hotspotLayers = [];
+
+// Helper: create a zone circle + label
+function addZoneCircle(map, zid, Z, opts={}){
+  const lvl = levelOf(Z.sri);
+  const circle = L.circle([Z.lat, Z.lng], {
+    radius: Z.radius,
+    color: Z.color,
+    weight: 2.5,
+    fillColor: Z.color,
+    fillOpacity: 0.18,
+    className: 'zone-circle-pulse'
+  }).addTo(map);
+
+  // inner marker pin
+  const icon = L.divIcon({
+    className: 'zone-pin',
+    html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:34px;height:34px;">
+      <div style="position:absolute;inset:0;border-radius:50%;background:${Z.color};opacity:.25;animation:ping 2s infinite"></div>
+      <div style="width:16px;height:16px;border-radius:50%;background:${Z.color};box-shadow:0 0 0 3px #0a1a16,0 0 16px ${Z.color};display:flex;align-items:center;justify-content:center;color:#04100d;font-weight:900;font-size:9px;">${zid}</div>
+    </div>`,
+    iconSize: [34,34],
+    iconAnchor: [17,17]
+  });
+  const marker = L.marker([Z.lat, Z.lng], { icon }).addTo(map);
+
+  // Label
+  const labelIcon = L.divIcon({
+    className: 'zone-label',
+    html: `<div style="transform:translateY(-26px);text-align:center;">ZONA ${zid} · ${Z.name.toUpperCase()}<br><span style="color:${Z.soft};font-size:10px">SRI ${Math.round(Z.sri)} · ${lvl.label}</span></div>`,
+    iconSize: [0,0],
+    iconAnchor: [0,0]
+  });
+  const label = L.marker([Z.lat, Z.lng], { icon: labelIcon, interactive: false }).addTo(map);
+
+  // Popup
+  const popup = `
+    <div style="min-width:220px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${Z.color}"></span>
+        <strong style="color:${Z.soft};font-size:12px">Zona ${zid} · ${Z.name}</strong>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px;color:#b8e0d4">
+        <div>SRI: <b style="color:${Z.soft}">${Math.round(Z.sri)}</b></div>
+        <div>Suhu: <b>${Z.temp.toFixed(1)}°C</b></div>
+        <div>MC: <b>${Z.mc}%</b></div>
+        <div>TMAT: <b>${Z.tmat}cm</b></div>
+      </div>
+      <div style="margin-top:6px;padding-top:6px;border-top:1px solid #173a30;font-size:10px;color:#7fa79b">
+        Koordinat: ${Z.lat.toFixed(4)}, ${Z.lng.toFixed(4)}
+      </div>
+    </div>`;
+  marker.bindPopup(popup, {closeButton:true});
+
+  function select(){
+    selectedZone = zid;
+    applyZone(zid);
+    circle.setStyle({weight:4, fillOpacity:0.28});
+    zoneLayers.forEach(z=>{
+      if(z._zid !== zid) z.setStyle({weight:2.5, fillOpacity:0.15});
+    });
+  }
+  marker.on('click', select);
+  circle.on('click', select);
+  circle._zid = zid;
+
+  zoneLayers.push(circle);
+  return { circle, marker, label, select };
+}
+
+// Add all zones to main map
+const zoneMeta = {};
+Object.entries(ZONES).forEach(([zid,Z])=>{
+  zoneMeta[zid] = addZoneCircle(mainMap, zid, Z);
+});
+
+// Node sensor markers (kecil)
+const nodeData = {
+  A:[[-3.4201,114.6702],[-3.4105,114.6912],[-3.4058,114.6801],[-3.4189,114.6887],[-3.4271,114.6795],[-3.4210,114.6758]],
+  B:[[-3.3562,114.6210],[-3.3648,114.6305],[-3.3581,114.6342],[-3.3665,114.6251]],
+  C:[[-3.4250,114.7205],[-3.4341,114.7312],[-3.4372,114.7234]],
+  D:[[-3.4061,114.8561],[-3.4142,114.8672],[-3.4089,114.8715],[-3.4165,114.8601],[-3.4130,114.8698]]
+};
+
+Object.entries(nodeData).forEach(([zid, nodes])=>{
+  const Z = ZONES[zid];
+  nodes.forEach(([lat,lng], i)=>{
+    const marker = L.circleMarker([lat,lng], {
+      radius: 4,
+      color: Z.color,
+      weight: 1.5,
+      fillColor: Z.color,
+      fillOpacity: 0.9,
+      className: 'node-pulse'
+    }).addTo(mainMap);
+    marker.bindTooltip(`Node ${zid}${i+1} · RSSI -${60+i*7+Math.floor(Math.random()*10)}dBm`, {direction:'top'});
+    nodeLayers.push(marker);
+  });
+});
+
+// Hotspot NOAA (simulasi)
+const hotspotData = [
+  [-3.4089,114.6751],[-3.3972,114.7012],[-3.4365,114.7421]
+];
+hotspotData.forEach(([lat,lng],i)=>{
+  const hs = L.circleMarker([lat,lng], {
+    radius: 6,
+    color: '#ff5a4e',
+    weight: 2,
+    fillColor: '#ff5a4e',
+    fillOpacity: 0.6,
+    className: 'hotspot'
+  }).addTo(mainMap);
+  hs.bindTooltip(`🔥 Hotspot NOAA-20 · ${(2+i*0.8).toFixed(1)} km dari Zona A`, {direction:'top'});
+  hotspotLayers.push(hs);
+});
+
+// Fly button
+document.getElementById('btnFly').addEventListener('click',()=>{
+  mainMap.flyToBounds([[ -3.46, 114.56],[-3.30, 114.92]], {duration:1.4, padding:[40,40]});
+});
+
+// Node toggle
+let nodesVisible = true;
+document.getElementById('toggleScan').addEventListener('click',function(){
+  nodesVisible = !nodesVisible;
+  nodeLayers.forEach(n=>{
+    if(nodesVisible) n.addTo(mainMap); else mainMap.removeLayer(n);
+  });
+  hotspotLayers.forEach(n=>{
+    if(nodesVisible) n.addTo(mainMap); else mainMap.removeLayer(n);
+  });
+  this.textContent = 'Node: '+(nodesVisible?'ON':'OFF');
+  this.style.color = nodesVisible ? '' : '#ff8a80';
+});
+
+// Initial fit
+mainMap.fitBounds([[-3.46,114.56],[-3.30,114.92]], {padding:[30,30]});
+
+/* ════════════════ MINI MAP (Overview) ════════════════ */
+const miniMap = L.map('leafletMini', {
+  center: [-3.41, 114.72],
+  zoom: 10,
+  zoomControl: false,
+  attributionControl: true,
+  dragging: true,
+  scrollWheelZoom: false
+});
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 19, attribution: '© Esri World Imagery'
+}).addTo(miniMap);
+
+miniMap.whenReady(()=>{
+  setTimeout(()=>document.getElementById('miniLoading').classList.add('hide'), 500);
+});
+
+// Mini zone circles only
+Object.entries(ZONES).forEach(([zid,Z])=>{
+  const circle = L.circle([Z.lat,Z.lng], {
+    radius: Z.radius,
+    color: Z.color,
+    weight: 2,
+    fillColor: Z.color,
+    fillOpacity: 0.2
+  }).addTo(miniMap);
+  const pin = L.divIcon({
+    className: 'zone-pin-mini',
+    html: `<div style="width:14px;height:14px;border-radius:50%;background:${Z.color};box-shadow:0 0 0 2px #0a1a16,0 0 12px ${Z.color};display:flex;align-items:center;justify-content:center;color:#04100d;font-weight:900;font-size:8px;">${zid}</div>`,
+    iconSize: [14,14],
+    iconAnchor: [7,7]
+  });
+  const marker = L.marker([Z.lat,Z.lng], { icon: pin }).addTo(miniMap);
+  marker.on('click', ()=>{
+    const btn = document.querySelector('.tabbtn[data-pane="map"]');
+    btn.click();
+    setTimeout(()=>{
+      selectedZone = zid;
+      applyZone(zid);
+      mainMap.flyTo([Z.lat,Z.lng], 13, {duration:1.3});
+    }, 300);
+  });
+  circle.on('click', ()=>marker.fire('click'));
+  circle._zid = zid;
+});
+miniMap.fitBounds([[-3.46,114.56],[-3.30,114.92]], {padding:[20,20]});
+
+/* ════════════════ ZONE APPLY ════════════════ */
+function applyZone(zid){
+  const Z = ZONES[zid];
+  const lvl = levelOf(Z.sri);
+
+  document.getElementById('zoneTag2').textContent = `Zona ${zid} · ${Z.name}`;
+  const lvl2 = document.getElementById('zoneLevel2');
+  lvl2.textContent = lvl.label;
+  lvl2.style.background = lvl.color+'22';
+  lvl2.style.color = lvl.soft;
+
+  document.getElementById('m-sri').textContent = Math.round(Z.sri);
+  document.getElementById('m-sri').style.color = lvl.soft;
+  document.getElementById('bar-sri').style.width = Z.sri+'%';
+  document.getElementById('bar-sri').style.background = lvl.color;
+
+  document.getElementById('m-temp').textContent = Z.temp.toFixed(1)+'°C';
+  document.getElementById('bar-temp').style.width = Math.min(100,(Z.temp/80*100))+'%';
+
+  document.getElementById('m-mc').textContent = Math.round(Z.mc)+'%';
+  document.getElementById('bar-mc').style.width = Z.mc+'%';
+
+  document.getElementById('m-tmat').textContent = Z.tmat+' cm';
+  document.getElementById('bar-tmat').style.width = Math.min(100,(Math.abs(Z.tmat)/80*100))+'%';
+
+  document.getElementById('zoneDesc').textContent = Z.desc;
+  document.getElementById('zoneCoords').textContent = `${Z.lat.toFixed(4)}, ${Z.lng.toFixed(4)}`;
+
+  const tag = document.getElementById('zoneTag');
+  tag.textContent = `Zona ${zid} · ${Z.name}`;
+  tag.style.background = lvl.color+'22';
+  tag.style.color = lvl.soft;
+
+  setGauge('g-sri','g-sri-t',Z.sri,100,lvl.color,Math.round(Z.sri));
+  setGauge('g-temp','g-temp-t',Z.temp,80,'#f5b83d',Z.temp.toFixed(1));
+  setGauge('g-moist','g-moist-t',Z.mc,100,'#38bdf8',Z.mc);
+
+  if(lc){
+    lc.data.datasets[0].data = generateSeries(Z.sri);
+    lc.data.datasets[0].borderColor = lvl.color;
+    lc.data.datasets[0].backgroundColor = lvl.color+'22';
+    lc.update();
+  }
+
+  // Update formula panel
+  const formulaBox = document.querySelector('#layerDetail .mt-4 div');
+  if(formulaBox){
+    formulaBox.innerHTML = `
+      <span>w₁ · (T<sub>tanah</sub>/60°C)</span>
+      <span>+ w₂ · (1 − MC/60%)</span>
+      <span>+ w₃ · |TMAT|/80cm</span>
+      <span>= <b style="color:${lvl.color}">${(Z.sri/100).toFixed(2)}</b> → <b style="color:${lvl.color}">${lvl.label}</b></span>`;
+  }
+}
+
+function setGauge(circleId, textId, val, max, color, txt){
+  const c = document.getElementById(circleId); if(!c) return;
+  const circ = 251.2;
+  c.style.stroke = color;
+  c.setAttribute('stroke-dashoffset', circ - Math.min(1,val/max)*circ);
+  const t = document.getElementById(textId);
+  if(t){ t.textContent = txt; t.style.fill = color; }
+}
+
+/* ════════════════ LIVE CHART ════════════════ */
+function generateSeries(base){
+  const arr=[]; let v=base-14;
+  for(let i=0;i<24;i++){ v += (Math.random()-0.35)*6 + (i>12?1.2:0); arr.push(Math.max(5,Math.min(98,Math.round(v)))); }
+  arr[arr.length-1]=base;
+  return arr;
+}
+const lc = new Chart(document.getElementById('liveChart').getContext('2d'),{
+  type:'line',
+  data:{labels:Array.from({length:24},(_,i)=>(i%4===0?`${i}h`:'')),
+    datasets:[{data:generateSeries(82),borderColor:'#ff5a4e',backgroundColor:'rgba(255,90,78,.12)',fill:true,tension:.4,borderWidth:2,pointRadius:0,pointHoverRadius:5}]},
+  options:{
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#0b1c17',borderColor:'#173a30',borderWidth:1,displayColors:false,titleColor:'#7fa79b',bodyColor:'#e6fff7',callbacks:{label:c=>'SRI: '+c.parsed.y}}},
+    scales:{x:{display:false},y:{min:0,max:100,grid:{color:'#132821'},ticks:{color:'#4d7461',font:{size:9}}}},
+    animation:{duration:800},maintainAspectRatio:false
+  }
+});
+
+/* ════════════════ KPI ════════════════ */
+function renderKPI(){
+  let c=0,w=0,s=0;
+  Object.values(ZONES).forEach(Z=>{ if(Z.sri>=75) c++; else if(Z.sri>=50) w++; else s++; });
+  document.getElementById('kpi-crit').textContent=c;
+  document.getElementById('kpi-warn').textContent=w;
+  document.getElementById('kpi-safe').textContent=s;
+}
+renderKPI();
+
+/* ════════════════ HEAT PIPE ════════════════ */
+const hpNodes = {
+  top:{title:'Evaporasi',desc:'Uap air keluar dari wick setelah menyerap panas. Proses ini mendinginkan permukaan gambut secara evaporatif.',color:'#22d3a6'},
+  vapor:{title:'Vapor Channel',desc:'Saluran uap panas internal. Mengalirkan panas dari kedalaman ke permukaan tanpa konduksi berlebih.',color:'#ff8a80'},
+  wick:{title:'Wick Basah (Bio)',desc:'Serat kelapa & jerami dengan kapilaritas tinggi. Air naik dari lapisan basah ke atas, siap menyerap panas.',color:'#7dd3fc'},
+  peat:{title:'Zona Smoldering',desc:'Sumber panas bawah tanah. Tanpa heat pipe, suhu gambut bisa naik >70°C dan memicu pembakaran lambat.',color:'#ff5a4e'}
+};
+document.querySelectorAll('.heatpipe-node').forEach(n=>{
+  n.addEventListener('click',()=>{
+    document.querySelectorAll('.heatpipe-node').forEach(x=>x.classList.remove('active'));
+    n.classList.add('active');
+    const info = hpNodes[n.dataset.node];
+    document.getElementById('node-info').innerHTML = `<b style="color:${info.color}">${info.title}</b><br><span style="color:#b8e0d4">${info.desc}</span>`;
+  });
+});
+
+const slWick = document.getElementById('slider-wick');
+const slCap = document.getElementById('slider-cap');
+const slArea = document.getElementById('slider-area');
+
+function updateSliderBg(el,color,pct){
+  el.style.background = `linear-gradient(90deg,${color} 0%,${color} ${pct}%,#1b3830 ${pct}%,#1b3830 100%)`;
+}
+function recalcCooling(){
+  const wick = +slWick.value;
+  const cap = +slCap.value;
+  const area = +slArea.value/10;
+  const eff = (cap/100) * (wick/120) * (area/2.4) * 14;
+  const tempSurf = Math.max(24, 68 - eff - 15 + (Math.random()*1.5));
+  const tempMid = Math.max(30, 68 - eff*0.9);
+  const tempDeep = 68;
+
+  document.getElementById('wick-depth').textContent = wick;
+  document.getElementById('cap-rate').textContent = cap;
+  document.getElementById('pipe-area').textContent = area.toFixed(1);
+  document.getElementById('hp-temp-surf').textContent = Math.round(tempSurf)+'°C';
+  document.getElementById('hp-temp-mid').textContent = Math.round(tempMid)+'°C';
+  document.getElementById('hp-cool-effect').textContent = `−${Math.round(eff)}°C pada −30cm`;
+  document.getElementById('eff-value').textContent = `−${eff.toFixed(1)}°C`;
+  const pct = Math.min(100,(eff/16)*100);
+  document.getElementById('eff-bar').style.width = pct+'%';
+
+  updateSliderBg(slWick,'#38bdf8', ((wick-60)/(160-60))*100);
+  updateSliderBg(slCap,'#22d3a6', cap);
+  updateSliderBg(slArea,'#f5b83d', ((area-0.5)/(5-0.5))*100);
+
+  document.querySelectorAll('.heat-zone').forEach(z=>{
+    const zone = z.dataset.zone;
+    const t = zone==='peatlow' ? tempDeep : zone==='peatmid' ? tempMid : tempSurf;
+    const opacity = Math.max(0.15, (t-25)/70 * 0.9);
+    z.setAttribute('opacity', opacity);
+  });
+}
+[slWick,slCap,slArea].forEach(s=>s.addEventListener('input',recalcCooling));
+
+document.getElementById('hpMode-cool').addEventListener('click',()=>{ slWick.value=160; slCap.value=100; slArea.value=50; recalcCooling(); });
+document.getElementById('hpMode-dry').addEventListener('click',()=>{ slWick.value=70; slCap.value=30; slArea.value=10; recalcCooling(); });
+document.getElementById('hpMode-auto').addEventListener('click',()=>{ slWick.value=120; slCap.value=78; slArea.value=24; recalcCooling(); });
+recalcCooling();
+
+/* ════════════════ LAYERS ════════════════ */
+const layerData = {
+  1:{tag:'LAYER 1',title:'PFVI Mapping',desc:'Pemodelan spasial untuk mengidentifikasi area gambut yang rentan terhadap smoldering dengan overlay TMAT, kelembapan tanah, curah hujan, dan tutupan lahan. Data diperbarui setiap 5 hari berdasarkan citra Sentinel-2 dan satelit NOAA.',img:'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80',metrics:[['Cakupan','48.000 ha'],['Resolusi','10 m'],['Update','5 hari'],['AUC','0.89'],['Cluster','16'],['Akurasi','89%']]},
+  2:{tag:'LAYER 2',title:'Early Warning System',desc:'SRI (Smoldering Risk Index) dihitung dari 18 node sensor tanah yang mengirim data via LoRaWAN setiap 5 menit. Fusi sensor: suhu tanah 3 kedalaman, kelembapan matriks, TMAT, dan kadar asap.',img:'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=800&q=80',metrics:[['Node','18 live'],['Latency','42 s'],['SRI','0-100'],['AUC','0.91'],['Recall','87%'],['Alert','3 aktif']]},
+  3:{tag:'LAYER 3',title:'Bio-Wick Heat Pipe',desc:'6 unit heat pipe pasif di Zona A. Menggunakan kombinasi serat kelapa (wick) + siklus pendinginan evaporatif. Menurunkan suhu gambut 30cm hingga 12°C tanpa listrik.',img:'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=800&q=80',metrics:[['Unit','6 aktif'],['ΔT','−12°C'],['Kedalaman','120 cm'],['Material','Stainless'],['Servicing','2 minggu'],['Umur','3 tahun']]},
+  4:{tag:'LAYER 4',title:'Community Response',desc:'MPA (Masyarakat Peduli Api) dilatih deteksi dini. 4 puskesmas terlibat skrining ISPA. 12 sekolah jalankan program edukasi gambut. Sistem alert otomatis ke WhatsApp MPA.',img:'https://images.unsplash.com/photo-1425913397330-cf8af2ff40a1?auto=format&fit=crop&w=800&q=80',metrics:[['MPA','42 orang'],['Puskesmas','4'],['Sekolah','12'],['Volunteer','120'],['Response','<2 jam'],['Coverage','4 kec']]}
+};
+document.querySelectorAll('.layer-col').forEach(col=>{
+  col.addEventListener('click',()=>{
+    document.querySelectorAll('.layer-col').forEach(x=>x.classList.remove('active'));
+    col.classList.add('active');
+    const l = layerData[col.dataset.layer];
+    document.getElementById('layerPanelTag').textContent = l.tag;
+    document.getElementById('layerPanelTitle').textContent = l.title;
+    document.getElementById('layerPanelDesc').textContent = l.desc;
+    document.getElementById('layerImg').src = l.img;
+    document.getElementById('layerMetrics').innerHTML = l.metrics.map(m=>`
+      <div class="rounded-lg p-2" style="background:#0b1c17;border:1px solid #173a30">
+        <p class="text-[9px]" style="color:var(--mute)">${m[0]}</p>
+        <p class="text-[12px] font-black text-white mt-0.5">${m[1]}</p>
+      </div>`).join('');
+  });
+});
+document.querySelector('.layer-col[data-layer="1"]').click();
+
+/* ════════════════ ANALYTICS CHARTS ════════════════ */
+const chartOpts = {
+  plugins:{legend:{labels:{color:'#7fa79b',font:{size:10,family:'Inter'}}},tooltip:{backgroundColor:'#0b1c17',borderColor:'#173a30',borderWidth:1,titleColor:'#7fa79b',bodyColor:'#e6fff7'}},
+  scales:{
+    x:{grid:{color:'#132821'},ticks:{color:'#4d7461',font:{size:9}}},
+    y:{grid:{color:'#132821'},ticks:{color:'#4d7461',font:{size:9}}}
+  },
+  maintainAspectRatio:false
+};
+
+const labels = Array.from({length:24},(_,i)=>`${i}h`);
+new Chart(document.getElementById('trendChart').getContext('2d'),{
+  type:'line',
+  data:{labels,
+    datasets:[
+      {label:'Zona A',data:Array.from({length:24},(_,i)=>Math.round(55+i*1.1+(Math.random()-0.5)*5)),borderColor:'#ff5a4e',backgroundColor:'rgba(255,90,78,.08)',tension:.4,fill:true,borderWidth:2,pointRadius:0},
+      {label:'Zona B',data:Array.from({length:24},(_,i)=>Math.round(40+Math.sin(i/3)*4+(Math.random()-0.5)*3)),borderColor:'#f5b83d',borderWidth:2,pointRadius:0,tension:.4},
+      {label:'Zona C',data:Array.from({length:24},(_,i)=>Math.round(45+Math.cos(i/4)*5+(Math.random()-0.5)*3)),borderColor:'#f5b83d',borderWidth:2,pointRadius:0,tension:.4,borderDash:[5,3]},
+      {label:'Zona D',data:Array.from({length:24},(_,i)=>Math.round(25+Math.sin(i/5)*3+(Math.random()-0.5)*2)),borderColor:'#22d3a6',borderWidth:2,pointRadius:0,tension:.4}
+    ]
+  },
+  options:{...chartOpts,scales:{...chartOpts.scales,y:{...chartOpts.scales.y,min:0,max:100}}}
+});
+
+new Chart(document.getElementById('pieChart').getContext('2d'),{
+  type:'doughnut',
+  data:{labels:['Kritis','Waspada','Aman'],datasets:[{data:[1,2,1],backgroundColor:['#ff5a4e','#f5b83d','#22d3a6'],borderColor:'#0a1a16',borderWidth:2}]},
+  options:{plugins:{legend:{position:'bottom',labels:{color:'#7fa79b',font:{size:10}}}},maintainAspectRatio:false,cutout:'65%'}
+});
+
+new Chart(document.getElementById('tempChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:['A','B','C','D'],datasets:[{data:[61.4,42.1,45.8,32.4],backgroundColor:['#ff5a4e','#22d3a6','#f5b83d','#22d3a6'],borderRadius:6}]},
+  options:{...chartOpts,plugins:{legend:{display:false},tooltip:chartOpts.plugins.tooltip}}
+});
+new Chart(document.getElementById('mcChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:['A','B','C','D'],datasets:[{data:[34,48,41,58],backgroundColor:['#ff5a4e','#22d3a6','#f5b83d','#22d3a6'],borderRadius:6}]},
+  options:{...chartOpts,plugins:{legend:{display:false},tooltip:chartOpts.plugins.tooltip}}
+});
+new Chart(document.getElementById('tmatChart').getContext('2d'),{
+  type:'bar',
+  data:{labels:['A','B','C','D'],datasets:[{data:[-58,-28,-35,-15],backgroundColor:['#ff5a4e','#22d3a6','#f5b83d','#22d3a6'],borderRadius:6}]},
+  options:{...chartOpts,plugins:{legend:{display:false},tooltip:chartOpts.plugins.tooltip}}
+});
+
+const clusterGrid = document.getElementById('clusterGrid');
+for(let i=0;i<16;i++){
+  const r = Math.random();
+  const color = r>0.7?'#ff5a4e':r>0.35?'#f5b83d':'#22d3a6';
+  const sri = Math.round((r>0.7?75+Math.random()*20:r>0.35?50+Math.random()*20:15+Math.random()*30));
+  const div = document.createElement('div');
+  div.className = 'cluster-cell rounded aspect-square flex flex-col items-center justify-center';
+  div.style.background = color+'33';
+  div.style.border = '1px solid '+color+'66';
+  div.innerHTML = `<span class="text-[9px]" style="color:${color};font-weight:800">SRI ${sri}</span>`;
+  div.title = `Cluster ${(i+1)} · SRI ${sri}`;
+  div.addEventListener('click',()=>{
+    alert(`Cluster ${(i+1)}\nSRI: ${sri}\nLevel: ${sri>=75?'KRITIS':sri>=50?'WASPADA':'AMAN'}`);
+  });
+  clusterGrid.appendChild(div);
+}
+
+/* ════════════════ LOG ════════════════ */
+const logEl = document.getElementById('log');
+let logFilter = 'all';
+function addLog(zone,msg,type){
+  const colors = {ok:'#22d3a6',warn:'#f5b83d',crit:'#ff5a4e',info:'#38bdf8'};
+  if(logFilter==='crit' && type!=='crit') return;
+  if(logFilter==='info' && type!=='info') return;
+  const now = new Date();
+  const ts = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+  const div = document.createElement('div');
+  div.className = 'log-line flex items-start gap-2';
+  div.innerHTML = `
+    <span style="color:#3f5a52;flex-shrink:0">${ts}</span>
+    <span style="color:${colors[type]||'#7fa79b'};flex-shrink:0">[${zone}]</span>
+    <span style="color:#c8e8de">${msg}</span>
+  `;
+  logEl.prepend(div);
+  if(logEl.children.length > 80) logEl.removeChild(logEl.lastChild);
+}
+
+addLog('SYS','Boot: 18/18 node online · LoRaWAN gateway aktif','ok');
+addLog('SYS','Peta satelit Esri World Imagery ter-load · center (-3.41, 114.72)','info');
+addLog('SYS','PFVI overlay ter-load · grid 4×4 cluster · refresh 5 hari','info');
+addLog('A','SRI 82 · suhu 61.4°C · TMAT −58cm · [KRITIS]','crit');
+addLog('B','SRI 47 · suhu 42.1°C · MC 48% · [WASPADA]','warn');
+addLog('C','SRI 54 · suhu 45.8°C · TMAT −35cm · [WASPADA]','warn');
+addLog('D','SRI 28 · kondisi stabil · [AMAN]','ok');
+addLog('A','Heat pipe #3 perlu servicing: wick dried 12%','warn');
+addLog('SYS','Citra NOAA-20: hotspot di 2.4 km dari Zona A','info');
+
+setInterval(()=>{
+  const z = ['A','B','C','D'][Math.floor(Math.random()*4)];
+  const Z = ZONES[z];
+  const node = z+(Math.floor(Math.random()*6)+1);
+  const r = Math.random();
+  let msg, type;
+  if(r<0.4){
+    msg = `heartbeat ok · T=${(Z.temp+(Math.random()-0.5)*2).toFixed(1)}°C · MC=${Math.round(Z.mc+(Math.random()-0.5)*3)}% · TMAT ${Z.tmat+(Math.random()*4-2).toFixed(0)}cm`;
+    type = Z.level==='crit'?'crit':Z.level==='warn'?'warn':'ok';
+  } else if(r<0.65){
+    msg = `packet rx · RSSI -${Math.floor(60+Math.random()*40)}dBm · SNR ${(Math.random()*8+2).toFixed(1)}dB`;
+    type='info';
+  } else if(r<0.8){
+    msg = `SRI recalculated → ${Math.round(Z.sri)} (${levelOf(Z.sri).label})`;
+    type = levelOf(Z.sri).lvl==='crit'?'crit':levelOf(Z.sri).lvl==='warn'?'warn':'ok';
+  } else if(r<0.9){
+    msg = `heat pipe check · wick moisture ${Math.round(60+Math.random()*40)}% · flow ${Math.round(20+Math.random()*60)}ml/h`;
+    type='ok';
+  } else {
+    msg = `sync cloud · ${Math.floor(Math.random()*80+20)}ms · data tersimpan`;
+    type='ok';
+  }
+  addLog(node,msg,type);
+},3000);
+
+document.getElementById('filterAll').addEventListener('click',()=>{logFilter='all';logEl.innerHTML='';addLog('SYS','Filter: SEMUA tampil','info');});
+document.getElementById('filterCrit').addEventListener('click',()=>{logFilter='crit';logEl.innerHTML='';addLog('SYS','Filter: KRITIS tampil','crit');});
+document.getElementById('filterInfo').addEventListener('click',()=>{logFilter='info';logEl.innerHTML='';addLog('SYS','Filter: INFO tampil','info');});
+
+/* ════════════════ ALERT MODAL ════════════════ */
+document.getElementById('openAlerts').addEventListener('click',()=>{
+  document.getElementById('alertModal').classList.add('open');
+});
+document.getElementById('alertModal').addEventListener('click',(e)=>{
+  if(e.target.id==='alertModal') e.target.classList.remove('open');
+});
+
+/* ════════════════ INIT ════════════════ */
+applyZone('A');
+
+setInterval(()=>{
+  Object.values(ZONES).forEach(Z=>{ Z.sri = Math.max(5,Math.min(99,Z.sri + (Math.random()-0.5)*0.8)); });
+  renderKPI();
+},8000);
+</script>
+</body>
+</html>
